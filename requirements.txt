@@ -4,3 +4,7 @@ pandas
 matplotlib
 numpy
 PyMuPDF
+plotly
+python-dotenv
+pypdf
+Pillowgit
