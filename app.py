@@ -508,3 +508,13 @@ if prompt_data:
             st.error(str(exc))
 
 st.caption(f"Tadabbur AI • {DAILY_MESSAGE_LIMIT} messages/day app allowance • Powered by {MODEL}")
+
+st.markdown(
+    """
+    <div style="text-align:center; margin-top:6px; line-height:1.5;">
+        <span style="color:#999; font-size:0.85rem;">Designed &amp; Developed by Saad</span><br>
+        <span style="color:#bbb; font-size:0.8rem;">Tadabbur AI — Deeper than the surface</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
