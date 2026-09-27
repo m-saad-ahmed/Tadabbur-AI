@@ -1,10 +1,8 @@
-streamlit
+streamlit==1.57.0
 groq
-pandas
-matplotlib
-numpy
+python-dotenv
+Pillow
+pypdf
 PyMuPDF
 plotly
-python-dotenv
-pypdf
-Pillowgit
+numpy
