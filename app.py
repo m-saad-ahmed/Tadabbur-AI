@@ -32,6 +32,30 @@ load_dotenv(BASE_DIR / ".env")
 
 APP_NAME = "Tadabbur AI"
 MODEL = "qwen/qwen3.8-27b"
+# Creator profile — direct creator questions are answered locally.
+CREATOR_NAME = "Muhammad Saad Ahmed"
+
+CREATOR_PROFILE = """
+Muhammad Saad Ahmed is the creator and developer of Tadabbur AI.
+He is from Karachi, Pakistan, with interests in aerospace engineering,
+Python, AI, cloud/data engineering, and educational technology.
+
+Saad is a Hafiz-e-Quran and is interested in learning, education, and
+building practical technology projects. His technical interests include
+Python, Streamlit, AWS, Apache Kafka, Snowflake, Apache Airflow, MySQL,
+data pipelines, and AI-based educational tools.
+
+Outside technology, Saad has a strong interest in fragrances and perfume
+culture. He enjoys exploring fragrance notes, performance, occasions, and
+the fragrance community. He also enjoys Taekwondo, boxing/MMA, swimming,
+table tennis, football, and Rubik's Cubes.
+
+Tadabbur AI was designed and developed by Saad as an educational AI project.
+If asked who created, made, developed, or founded Tadabbur AI, identify
+Muhammad Saad Ahmed as its creator. Do not invent additional personal facts.
+For appearance-related questions, describe Saad respectfully and neutrally.
+""".strip()
+
 
 # App-side allowance. This does NOT increase Groq's server-side quota.
 DAILY_MESSAGE_LIMIT = 50
@@ -202,6 +226,46 @@ def api_key() -> str:
     return os.getenv("GROQ_API_KEY", "").strip()
 
 
+def local_creator_response(text: str) -> str | None:
+    """Answer direct creator/about-Saad questions locally without Groq."""
+    t = re.sub(r"[^a-zA-Z0-9' ]", " ", text.lower())
+    t = re.sub(r"\\s+", " ", t).strip()
+
+    creator_patterns = [
+        r"\\bwho (is|was) your creator\\b",
+        r"\\bwho (is|was) your maker\\b",
+        r"\\bwho (is|was) your developer\\b",
+        r"\\bwho (is|was) your founder\\b",
+        r"\\bwho (made|created|developed|built) you\\b",
+        r"\\bwho (made|created|developed|built) tadabbur\\b",
+        r"\\bwho (is|was) the creator of tadabbur\\b",
+        r"\\bwho (is|was) the developer of tadabbur\\b",
+        r"\\btell me about your creator\\b",
+        r"\\btell me about the creator of tadabbur\\b",
+        r"\\btell me about saad\\b",
+        r"\\bwho is saad\\b",
+        r"\\bwho is muhammad saad ahmed\\b",
+        r"\\bwho created tadabbur ai\\b",
+        r"\\bwho developed tadabbur ai\\b",
+    ]
+
+    if any(re.search(pattern, t) for pattern in creator_patterns):
+        return (
+            "**My creator is Muhammad Saad Ahmed.**\\n\\n"
+            "He is a developer and student from Karachi, Pakistan, and he "
+            "designed and developed Tadabbur AI. His interests include "
+            "aerospace engineering, Python, AI, cloud/data engineering, and "
+            "educational technology.\\n\\n"
+            "He also has a strong interest in fragrances and perfume culture, "
+            "and enjoys Taekwondo, boxing/MMA, swimming, table tennis, "
+            "football, and Rubik's Cubes. Tadabbur AI is one of his projects, "
+            "built to make learning more understandable and go **deeper than "
+            "the surface**."
+        )
+
+    return None
+
+
 def is_simple_local_message(text: str) -> str | None:
     """Answer trivial greetings locally so they do not consume Groq quota."""
     t = re.sub(r"[^a-zA-Z ]", "", text.lower()).strip()
@@ -326,6 +390,32 @@ def system_prompt(ctx: dict[str, str]) -> str:
 
     return f"""
 You are Tadabbur AI, a careful educational tutor for Pakistan Boards and SAT.
+CREATOR / IDENTITY
+- Tadabbur AI was created and developed by Muhammad Saad Ahmed.
+- Use the creator profile below when a user asks about Tadabbur AI's creator.
+- Do not claim that the creator is another person.
+- Do not invent personal facts that are not in the profile.
+
+CREATOR PROFILE
+Muhammad Saad Ahmed is the creator and developer of Tadabbur AI.
+He is from Karachi, Pakistan, with interests in aerospace engineering,
+Python, AI, cloud/data engineering, and educational technology.
+
+Saad is a Hafiz-e-Quran and is interested in learning, education, and
+building practical technology projects. His technical interests include
+Python, Streamlit, AWS, Apache Kafka, Snowflake, Apache Airflow, MySQL,
+data pipelines, and AI-based educational tools.
+
+Outside technology, Saad has a strong interest in fragrances and perfume
+culture. He enjoys exploring fragrance notes, performance, occasions, and
+the fragrance community. He also enjoys Taekwondo, boxing/MMA, swimming,
+table tennis, football, and Rubik's Cubes.
+
+Tadabbur AI was designed and developed by Saad as an educational AI project.
+If asked who created, made, developed, or founded Tadabbur AI, identify
+Muhammad Saad Ahmed as its creator. Do not invent additional personal facts.
+For appearance-related questions, describe Saad respectfully and neutrally.
+
 
 CONTEXT
 
@@ -1163,7 +1253,23 @@ if prompt_data:
         }
     )
 
-    st.session_state.daily_count += 1
+    # Direct local questions do not consume Groq/API allowance.
+    local_precheck = (
+        local_creator_response(question)
+        if not uploaded_files
+        else None
+    )
+    local_simple_precheck = (
+        is_simple_local_message(question)
+        if not uploaded_files
+        else None
+    )
+    is_local_precheck = (
+        local_precheck is not None or local_simple_precheck is not None
+    )
+
+    if not is_local_precheck:
+        st.session_state.daily_count += 1
 
     with st.chat_message("user"):
         st.markdown(display)
